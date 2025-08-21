@@ -29,21 +29,27 @@ function intersectionArea(a, b) {
   return xOverlap * yOverlap;
 }
 
-function computeLayout(work) {
-  const leftW = Math.floor(work.width * 0.5);
+async function computeLayout(work) {
+  const settings = await new Promise(resolve => {
+    chrome.storage.sync.get({splitPercent: 50}, resolve);
+  });
+  
+  const percent = settings.splitPercent / 100;
+  const leftW = Math.floor(work.width * percent);
   const rightW = work.width - leftW;
+  
   return {
-    left: { 
-      left: work.left, 
-      top: work.top, 
-      width: leftW, 
-      height: work.height 
+    left: {
+      left: work.left,
+      top: work.top,
+      width: leftW,
+      height: work.height
     },
-    right: { 
-      left: work.left + leftW, 
-      top: work.top, 
-      width: rightW, 
-      height: work.height 
+    right: {
+      left: work.left + leftW,
+      top: work.top,
+      width: rightW,
+      height: work.height
     }
   };
 }
@@ -99,7 +105,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const videoId = msg.videoId;
         const win = await getActiveWindow();
         const display = await getDisplayForWindow(win);
-        const layout = computeLayout(display.workArea);
+        const layout = await computeLayout(display.workArea);
 
         originalWindows.set(win.id, {
           left: win.left,

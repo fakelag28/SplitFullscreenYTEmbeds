@@ -20,3 +20,53 @@
   pointer-events: none;
 }
 .split-btn__wrap .split-btn { pointer-events: auto; }
+
+.split-btn__wrap {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+}
+
+.split-btn, .restore-btn {
+  padding: 6px 12px;
+  background: rgba(28, 28, 28, 0.8);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.split-btn:hover, .restore-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+}
+
+.global-restore-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  padding: 10px 16px;
+  background: rgba(40, 40, 40, 0.9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.global-restore-btn:hover {
+  background: rgba(255, 0, 0, 0.9);
+}
+
+.global-restore-btn.restoring {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

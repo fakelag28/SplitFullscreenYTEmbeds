@@ -1,60 +1,24 @@
 const YT_HOSTS = ["www.youtube.com", "www.youtube-nocookie.com"];
-const BUTTON_TEXT = "Split";
-const RESTORE_TEXT = "Restore";
+const translations = {
+  ru: {
+    split: "Разделить",
+    restore: "Восстановить",
+    splitError: "Не удалось определить VIDEO_ID из iframe.",
+    splitFailed: "Ошибка при разделении экрана:",
+    settingsSaved: "Настройки сохранены!"
+  },
+  en: {
+    split: "Split",
+    restore: "Restore",
+    splitError: "Failed to get VIDEO_ID from iframe.",
+    splitFailed: "Split error:",
+    settingsSaved: "Settings saved!"
+  }
+};
 
-const style = document.createElement('style');
-style.textContent = `
-  .split-btn__wrap {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 1000;
-    display: flex;
-    gap: 8px;
-  }
-  
-  .split-btn, .restore-btn {
-    padding: 6px 12px;
-    background: rgba(28, 28, 28, 0.8);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    transition: background 0.2s;
-  }
-  
-  .split-btn:hover, .restore-btn:hover {
-    background: rgba(255, 0, 0, 0.8);
-  }
-  
-  .global-restore-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-    padding: 10px 16px;
-    background: rgba(40, 40, 40, 0.9);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  }
-  
-  .global-restore-btn:hover {
-    background: rgba(255, 0, 0, 0.9);
-  }
-  
-  .global-restore-btn.restoring {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-`;
-document.head.appendChild(style);
+let currentLanguage = 'ru';
+let BUTTON_TEXT = translations.ru.split;
+let RESTORE_TEXT = translations.ru.restore;
 
 let isRestoring = false;
 
@@ -85,6 +49,9 @@ function ensureGlobalRestoreButton() {
             restoreBtn.classList.remove('restoring');
             restoreBtn.textContent = RESTORE_TEXT;
             restoreBtn.style.display = 'none';
+            document.querySelectorAll('.split-btn__wrap').forEach(wrap => {
+              wrap.style.display = 'flex';
+            });
             isRestoring = false;
           }, 500);
         } else {
@@ -140,7 +107,7 @@ function addSplitButton(iframe) {
     e.stopPropagation();
     const vid = extractVideoId(iframe.src);
     if (!vid) {
-      alert("Не удалось определить VIDEO_ID из iframe.");
+      alert(translations[currentLanguage].splitError);
       return;
     }
     try {
@@ -149,9 +116,12 @@ function addSplitButton(iframe) {
         throw new Error(response?.error || "Unknown error");
       }
       ensureGlobalRestoreButton();
+      document.querySelectorAll('.split-btn__wrap').forEach(wrap => {
+        wrap.style.display = 'none';
+      });
     } catch (err) {
       console.error("Split error:", err);
-      alert(`Ошибка при разделении экрана: ${err.message}`);
+      alert(`${translations[currentLanguage].splitFailed} ${err.message}`);
     }
   });
 }
@@ -159,8 +129,39 @@ function addSplitButton(iframe) {
 function scan() {
   const iframes = document.querySelectorAll('iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"]');
   iframes.forEach((ifr) => addSplitButton(ifr));
+  
+  const restoreBtn = getGlobalRestoreButton();
+  if (restoreBtn && restoreBtn.style.display !== 'none') {
+    document.querySelectorAll('.split-btn__wrap').forEach(wrap => {
+      wrap.style.display = 'none';
+    });
+  }
 }
 
 const mo = new MutationObserver(() => scan());
 mo.observe(document.documentElement, { childList: true, subtree: true });
-scan();
+chrome.storage.sync.get(['language'], (data) => {
+  if (data.language) {
+    currentLanguage = data.language;
+    BUTTON_TEXT = translations[currentLanguage].split;
+    RESTORE_TEXT = translations[currentLanguage].restore;
+  }
+  scan();
+});
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "LANGUAGE_CHANGED") {
+    currentLanguage = msg.language;
+    BUTTON_TEXT = translations[currentLanguage].split;
+    RESTORE_TEXT = translations[currentLanguage].restore;
+    
+    document.querySelectorAll('.split-btn').forEach(btn => {
+      btn.textContent = BUTTON_TEXT;
+    });
+    
+    const restoreBtn = getGlobalRestoreButton();
+    if (restoreBtn) {
+      restoreBtn.textContent = RESTORE_TEXT;
+    }
+  }
+});
